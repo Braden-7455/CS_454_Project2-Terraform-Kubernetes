@@ -1,0 +1,110 @@
+<!-- 
+****************************************************************************************************
+Program Title: Terraform Dice Roller 
+Project File: app.py
+Name: Braden Gant
+Course Section: CS454-01 
+Due Date: 12/01/2025 
+****************************************************************************************************
+******************************* PROGRAM DESCRIPTION ************************************************
+****************************************************************************************************
+This file defines an HTML/JavaScript client for the Terrraform Dice Roller.
+The page allows for the user to to choose a die (e.g., d6, d20, 3d6) and sends the request to the
+backend Flask API, where it will then display the individual roll results and total sum back to the user.
+**************************************************************************************************** 
+-->
+
+<!DOCTYPE html>   <!-- Defines the HTML 5 document type -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Terraform Dice Roller</title>  <!-- Sets the Title of Site -->
+
+  <!-- Sets the Syling for the page and controls -->
+  <style>   
+    body { 
+    font-family: Arial, sans-serif;
+    max-width: 600px; 
+    margin: 40px auto; 
+    }
+
+
+    .result { 
+      margin-top: 20px; 
+      padding: 10px; 
+      border: 1px solid #ccc; 
+    }
+
+    label, select, input, button { 
+      font-size: 1rem; 
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Dice Roller (Terraform + Docker)</h1>
+
+  <p>
+    Select a die and click Roll. You can use formats like <code>d6</code>, <code>d20</code>, or <code>3d6</code>.
+  </p>
+
+  <!-- Sets the Drop Down Menu for the Dice Choice -->
+  <label for="die">Die:</label>
+  <select id="die">
+    <option value="d4">d4</option>
+    <option value="d6" selected>d6</option>
+    <option value="d8">d8</option>
+    <option value="d10">d10</option>
+    <option value="d12">d12</option>
+    <option value="d20">d20</option>
+    <option value="d100">d100</option>
+  </select>
+
+  <!-- Sets the optional dustom dice expression like 3d6 etc... -->
+  <input id="custom" type="text" placeholder="or custom (e.g. 3d6)" />
+
+  <!-- Creates a button that triggers the roll request -->
+  <button id="roll-btn">Roll</button>
+
+  <!-- Sets the results fo the roll request, initially hidden until results are made -->
+  <div id="result" class="result" style="display: none;"></div>
+
+  <script>
+    //Sets the URL for the backend API
+    //Exposes the Docker Terraform stack for the backend to http://localhost:5001
+    const backendBase = "http://localhost:5001";
+
+    //Attaches a handler for the Roll button to recieve clicks
+    document.getElementById("roll-btn").addEventListener("click", async () => {
+      const selectValue = document.getElementById("die").value;       //Retrieves the value from the dropdown
+      const custom = document.getElementById("custom").value.trim();  //Recieves the custom text input if it exists 
+      const die = custom || selectValue;
+
+      const resultDiv = document.getElementById("result");
+      resultDiv.style.display = "block";                //Shows the results block whn value is retrieved
+      resultDiv.textContent = "Rolling " + die + "..."; //Sets the temorary status text
+
+      try {
+        //Sends a GET request to the backend /roll endpoint with the dice paramteers
+        const res = await fetch(`${backendBase}/roll?die=${encodeURIComponent(die)}`);
+        const data = await res.json(); //Parses the response from the backend
+
+        //Checks to make sure that the HTTP status is not good, if so it shows the error message
+        if (!res.ok) {
+          resultDiv.textContent = `Error: ${data.error || "Unknown error"}`;
+          return;
+        }
+          //On success it displays the rolled die, total, and results 
+        resultDiv.innerHTML = `
+          <strong>Rolled:</strong> ${data.die}<br/>
+          <strong>Results:</strong> ${data.results.join(", ")}<br/>
+          <strong>Total:</strong> ${data.total}
+        `;
+      } catch (err) {
+        //Outputs an eerror  for network or if the request fails
+        resultDiv.textContent = "Request failed: " + err;
+      }
+    });
+  </script>
+</body>
+</html>
